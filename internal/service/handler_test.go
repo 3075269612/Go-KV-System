@@ -3,7 +3,7 @@ package service
 import (
 	"Go-AI-KV-System/internal/config"
 	"Go-AI-KV-System/internal/core"
-	pb "Go-AI-KV-System/proto"
+	pb "Go-AI-KV-System/api/proto"
 	"context"
 	"net"
 	"testing"

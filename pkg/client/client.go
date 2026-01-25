@@ -1,105 +1,85 @@
 package client
 
 import (
-	"Go-AI-KV-System/pkg/protocol"
-	"bufio"
-	"fmt"
-	"net"
-	"sync"
+	pb "Go-AI-KV-System/api/proto"
+	"context"
 	"time"
+
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
-// Client 结构体
+// Client 封装了 gRPC 的连接和客户端存根
 type Client struct {
-	addr string 	// 服务端地址 "localhost:8080"
-	conn net.Conn	// 当前持有的长连接
-	mu sync.Mutex	// 防止并发写入导致粘包混乱
+	conn *grpc.ClientConn
+	rpcClient pb.KVServiceClient
 }
 
-// NewClient 初始化客户端并建立连接
-func NewClient(addr string) (*Client, error) {
-	conn, err := net.DialTimeout("tcp", addr, 3 * time.Second)
+// NewClient 创建了一个新的 gRPC 客户端连接
+func NewClient(address string) (*Client, error) {
+	// 1. 建立 gRPC 连接
+	conn, err := grpc.NewClient(address, grpc.WithTransportCredentials(insecure.NewCredentials()))
 	if err != nil {
 		return nil, err
 	}
+
+	// 2. 创建生成的客户端存根 (Stub)
+	c := pb.NewKVServiceClient(conn)
+
+	// 3. 返回封装后的 Client 实例
 	return &Client{
-		addr: addr,
 		conn: conn,
+		rpcClient: c,
 	}, nil
 }
 
-// 核心接口
-// Set 发送 SET 命令
+// Close 关闭底层连接
+func (c *Client) Close() error {
+	return c.conn.Close()
+}
+
+// Set 封装 Set 请求
 func (c *Client) Set(key, value string) error {
-	command := fmt.Sprintf("SET %s %s", key, value)
-	_, err := c.sendRequest(command)
+	// 设置一秒超时，防止网络卡死
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
+
+	req := &pb.SetRequest{
+		Key: key,
+		Value: value,
+	}
+
+	// 调用远程方法
+	_, err := c.rpcClient.Set(ctx, req)
 	return err
 }
 
-// Get 发送 GET 命令
+// Get 封装 Get 请求
 func (c *Client) Get(key string) (string, error) {
-	command := fmt.Sprintf("GET %s", key)
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
 
-	resp, err := c.sendRequest(command)
+	req := &pb.GetRequest{
+		Key: key,
+	}
+
+	resp, err := c.rpcClient.Get(ctx, req)
 	if err != nil {
 		return "", err
 	}
-	return resp, nil
+	return resp.Value, nil
 }
 
-// sendRequest 封装底层的封包和拆包逻辑
-// 这是 SDK 最核心的部分：屏蔽网络细节
-func (c *Client) sendRequest(msg string) (string, error) {
-	c.mu.Lock()
-	defer c.mu.Unlock()
+// Del 封装 Del 请求
+func (c *Client) Del(key string) error {
+	ctx, cancel := context.WithTimeout(context.Background(), 5 * time.Second)
+	defer cancel()
 
-	// 1. 检查连接状态（简单的重连机制）
-	if c.conn == nil {
-		var err error
-		c.conn, err = net.DialTimeout("tcp", c.addr, 3 * time.Second)
-		if err != nil {
-			return "", err
-		}
+	req := &pb.DelRequest{
+		Key: key,
 	}
 
-	// 🔍 观察点 1: SDK 接到了老板的命令
-    fmt.Printf("\n[Client] 1. 收到命令: %q\n", msg)
-
-	// 2. 封包（Encode）
-	data, err := protocol.Encode(msg)
-	if err != nil {
-		return "", err
-	}
-
-	// 🔍 观察点 2: 秘书把命令打包成了字节流（二进制）
-    // %v 会打印出 byte 的数字，比如 [0 0 0 5 ...]
-    fmt.Printf("[Client] 2. 封包完成，准备发送字节流: %v\n", data)
-
-	// 3. 发送
-	_, err = c.conn.Write(data)
-	if err != nil {
-		c.conn.Close()
-		c.conn = nil
-		return "", err
-	}
-
-	// 4. 接受响应（Decode）
-	reader := bufio.NewReader(c.conn)
-	responseMsg, err := protocol.Decode(reader)
-	if err != nil {
-		c.conn.Close()
-		c.conn = nil
-		return "", err
-	}
-	return responseMsg, nil
+	_, err := c.rpcClient.Del(ctx, req)
+	return err
 }
 
-// 关闭资源
-func (c *Client) Close() error {
-	c.mu.Lock()
-	defer c.mu.Unlock()
-	if c.conn != nil {
-		return c.conn.Close()
-	}
-	return nil
-}

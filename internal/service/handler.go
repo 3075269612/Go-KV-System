@@ -3,7 +3,7 @@ package service
 import (
 	"context"
 	"Go-AI-KV-System/internal/core"
-	pb "Go-AI-KV-System/proto"
+	pb "Go-AI-KV-System/api/proto"
 )
 
 // 定义服务结构体

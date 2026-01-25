@@ -1,52 +1,57 @@
 package client
 
 import (
+	"Go-AI-KV-System/internal/config"
+	"Go-AI-KV-System/internal/core"
+	"Go-AI-KV-System/internal/service"
+	pb "Go-AI-KV-System/api/proto"
+	"net"
 	"testing"
 	"time"
 
-	// 👇 引入我们需要的基础模块
-	"Go-AI-KV-System/internal/config"
-	"Go-AI-KV-System/internal/core"
-	"Go-AI-KV-System/pkg/protocol"
+	"google.golang.org/grpc"
 )
 
-func TestClient_Integration(t *testing.T) {
-	// ==========================================
-	// 1. 模拟启动服务端 (Server Setup)
-	// ==========================================
-	
-	// 使用 localhost 的一个不常用端口，防止冲突
-	addr := "localhost:9999"
+// TestKVServiceFlow 会模拟启动一个服务器，然后创建一个客户端去连接它
+func TestKVServiceFlow(t *testing.T) {
+	// 1. 启动服务端
 
-	// 初始化内存数据库 (这是 Server 需要的依赖)
-	memDB := core.NewMemDB(&config.Config{})
-	
-	// 初始化服务端
-	server := protocol.NewServer(addr, memDB)
+	// 1.1 准备基础设施：使用 :0 让系统自动分配空闲端口
+	lis, err := net.Listen("tcp", ":0")
+	if err != nil {
+		t.Fatalf("failed to listen: %v ", err)
+	}
+	// 获取系统实际分配的端口
+	port := lis.Addr().String()
+	t.Logf("Test Server started on port: %s", port)
 
-	// ⚠️ 关键点：在一个新的 Goroutine 中启动 Server
-	// 如果不加 'go'，代码会卡在这里死循环，永远不会执行下面的 Client 逻辑
+	// 1.2 创建 gRPC 服务器，注册 KV 服务
+	s := grpc.NewServer()
+	db := core.NewMemDB(&config.Config{})
+
+	kvService := service.NewKVService(db)
+
+	pb.RegisterKVServiceServer(s, kvService)
+
+	// 1.3 goroutine 中启动服务（不阻塞测试主线程）
 	go func() {
-		if err := server.Start(); err != nil {
-			t.Errorf("Server failed to start: %v", err)
+		if err := s.Serve(lis); err != nil {
+			t.Logf("failed to serve: %v", err)
 		}
 	}()
+	defer s.Stop()	// 测试结束自动停止服务，释放资源
 
-	// 稍微睡 100 毫秒，确保 Server 已经准备好监听了
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(50 * time.Millisecond)
 
-	// ==========================================
-	// 2. 启动客户端 (Client Action)
-	// ==========================================
-	
-	// 连接刚刚启动的本地服务端
-	cli, err := NewClient(addr)
+	// 2. 启动客户端
+
+	cli, err := NewClient(port)
 	if err != nil {
 		t.Fatalf("Failed to connect to server: %v", err)
 	}
 	defer cli.Close()
 
-	// ==========================================
+// ==========================================
 	// 3. 执行测试用例 (Assert)
 	// ==========================================
 
@@ -54,7 +59,7 @@ func TestClient_Integration(t *testing.T) {
 	key := "my_name"
 	val := "Naato"
 	t.Logf("Testing SET %s = %s", key, val)
-	
+
 	err = cli.Set(key, val)
 	if err != nil {
 		t.Fatalf("❌ SET command failed: %v", err)
@@ -72,5 +77,21 @@ func TestClient_Integration(t *testing.T) {
 		t.Errorf("❌ Verification Failed! Expected '%s', but got '%s'", val, got)
 	} else {
 		t.Logf("✅ Success! Got expected value: %s", got)
+	}
+
+	// 测试 DEL (新增，Day 7 完整性测试)
+	t.Logf("Testing DEL %s", key)
+	if err := cli.Del(key); err != nil {
+		t.Fatalf("❌ DEL command failed: %v", err)
+	}
+
+	// 验证删除是否生效
+	gotAfterDel, err := cli.Get(key)
+	// gRPC 的 Get 如果找不到 key，可能会返回空字符串，或者 error，具体看你的 Server 实现
+	// 这里假设返回空字符串表示没有找到
+	if gotAfterDel != "" {
+		t.Errorf("❌ DEL failed! Key still exists with value: %s", gotAfterDel)
+	} else {
+		t.Log("✅ DEL Success")
 	}
 }
