@@ -31,7 +31,7 @@
 
 🗺️ 阶段二：高性能 API 网关 (Day 11-20)
 
-[ ] Day 11: HTTP Server 搭建 (Gin 框架集成)
+[x] Day 11: HTTP Server 搭建 (Gin 框架集成) ✅
 
 [ ] Day 12: [泛化调用] HTTP 转 gRPC 动态代理 —— 网关的核心，让前端能调后端
 
