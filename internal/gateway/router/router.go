@@ -26,6 +26,9 @@ func NewRouter(kvHandler *handler.KVHandler, healthHandler *handler.HealthHandle
 
 	// 2. 业务路由
 	v1 := r.Group("api/v1")
+
+	// Day 16 新增：熔断器中间件
+	v1.Use(middleware.CircuitBreaker("kv-service"))
 	{
 		v1.POST("/kv", kvHandler.HandleSet)
 		v1.GET("/kv", kvHandler.HandleGet)

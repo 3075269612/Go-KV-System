@@ -41,7 +41,7 @@
 
 [x] Day 15: [高可用] 全局限流 (Token Bucket 算法实现) ✅
 
-[ ] Day 16: [高可用] 熔断降级 (Hystrix 状态机实现)
+[x] Day 16: [高可用] 熔断降级 (Hystrix 状态机实现) ✅
 
 [ ] Day 17: [负载均衡] 结合 Day 9 的 Etcd 实现 RoundRobin/Hash 策略
 
