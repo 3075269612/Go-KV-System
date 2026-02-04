@@ -63,7 +63,7 @@
 
 [ ] Day 25: [编排层] 实现 Supervisor (主管) Agent —— 负责拆解用户任务
 
-[ ] Day 26: [执行层] 实现 Worker Agent —— 负责具体执行 KV 增删改查
+[ ] Day 26: [异步解耦] 集成 RabbitMQ 实现 Worker 任务队列 —— 解决 LLM 响应慢难题
 
 [ ] Day 27: [循环机制] 实现思考-执行-观察 Loop (ReAct 模式)
 
