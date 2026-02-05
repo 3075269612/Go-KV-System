@@ -1,11 +1,9 @@
-🚀 35天 Golang 后端 + AI Agent 全栈突击计划 (最终纯净版)
+🚀 35天 Golang 后端架构师计划 
 
 🎯 核心目标
-项目: 分布式 KV 存储 + 高性能微服务网关 + Go原生多智能体编排引擎
+项目: 分布式 KV 存储 + 高性能微服务网关 + CDC 实时数据流架构
 
-算法: LeetCode Hot 100 (每日 3 题)
-
-技术栈: Golang (GMP/Channel), gRPC, Etcd, Docker, LLM (Function Calling)
+技术栈: Golang (GMP/Channel), gRPC, Etcd, RabbitMQ, Docker, OpenTelemetry
 
 🗺️ 阶段一：分布式存储引擎 (Day 1-10)
 
@@ -51,37 +49,37 @@
 
 [x] Day 20: 阶段复盘 & 压力测试 (wrk -> 52k QPS) ✅
 
-🗺️ 阶段三：AI Agent 编排引擎 (Day 21-30) 🔥 核心升级
+🗺️ 阶段三：工程化完善与架构演进 (Day 21-30) 🔥 核心升级
 
-[ ] Day 21: LLM SDK 封装 (适配 OpenAI/DeepSeek 接口)
+[ ] Day 21: [存储引擎] 锁竞争优化 (Sharded Map) —— 手写 FNV 哈希分片锁替代 sync.Map，大幅降低高并发写场景下的锁粒度冲突。
 
-[ ] Day 22: [并发基石] 定义 Agent 结构体与 Actor 模型 —— 每个 Agent 一个 Goroutine
+[ ] Day 22: [中间件] RabbitMQ 与事件总线 (EventBus) —— 搭建基础设置，在 KV 内部实现基于 Channel 的 EventBus 解耦业务逻辑与消息发送。
 
-[ ] Day 23: [工具层] 实现 Tool 接口与反射调用 —— 让 AI 能调用你的 KV Store
+[ ] Day 23: [架构模式] CDC 数据变更流 (Change Data Capture) —— 改造 Set/Del 操作，在落盘后异步分发变更事件，实现 "Fire-and-Forget" 模式，确保主流程低延迟。
 
-[ ] Day 24: [大脑层] 实现 Function Calling 解析器 —— 处理 AI 返回的 JSON 指令
+[ ] Day 24: [可靠性] 优雅启停 (Graceful Shutdown) —— 完善 KV Server 端的退出逻辑，确保 AOF 缓冲区刷盘、RabbitMQ 连接安全关闭，防止数据丢失。
 
-[ ] Day 25: [编排层] 实现 Supervisor (主管) Agent —— 负责拆解用户任务
+[ ] Day 25: [容器化] Docker Compose 集群编排 —— 编写多阶段构建 Dockerfile，一键拉起 Etcd, RabbitMQ, Jaeger, KV-Nodes(x3), Gateway 完整环境。
 
-[ ] Day 26: [异步解耦] 集成 RabbitMQ 实现 Worker 任务队列 —— 解决 LLM 响应慢难题
+[ ] Day 26: [极致压测] 性能对比验证 —— 使用 pprof 对比 ShardedMap 优化前后的锁等待时间 (Mutex Wait)；验证 CDC 开启对写性能的影响。
 
-[ ] Day 27: [循环机制] 实现思考-执行-观察 Loop (ReAct 模式)
+[ ] Day 27: [代码重构] Go Idiomatic Refactoring —— 全局代码审查，优化 Error Handling，规范 Context 传递，清理硬编码与冗余逻辑。
 
-[ ] Day 28: [记忆集成] 将 KV Store 接入作为 Agent 的长期记忆 (Session Storage)
+[ ] Day 28: [项目门面] 架构文档与 README 完善 —— 绘制清晰的 "分布式架构图" (展示 CDC 流程) 和 "时序图"，更新 API 文档。
 
-[ ] Day 29: Docker 容器化与 Compose 编排
+[ ] Day 29: [面试演练] 分布式系统专题 —— 准备 "强一致性 vs 最终一致性"、"CDC 的应用场景"、"为什么不用 MySQL Binlog" 等话术。
 
-[ ] Day 30: 系统联调：用自然语言指令控制集群 (End-to-End Demo)
+[ ] Day 30: [面试演练] Go 语言核心专题 —— 准备 "Map 底层扩容机制"、"G-M-P 调度模型"、"Channel 无锁编程原理" 等底层原理。
 
 📝 阶段四：简历与面试 (Day 31-35)
 （最后冲刺，面向面试）
 
-[ ] Day 31: 架构图绘制 (突出 Swarm 并发模型)
+[ ] Day 31: 简历深度优化 —— 将 "Sharded Map" 和 "CDC 架构" 作为核心亮点重写项目描述，突出 "高并发" 和 "解耦" 关键词。
 
-[ ] Day 32: 难点深挖 (Golang GMP 调度在 Agent 中的应用)
+[ ] Day 32: 模拟面试 (计算机基础) —— 计网 (TCP/HTTP/gRPC)、操作系统 (IO模型/进程线程)、数据库 (索引/事务/Redis)。
 
-[ ] Day 33: 模拟面试 (计算机基础：计网/OS/DB)
+[ ] Day 33: 模拟面试 (项目设计) —— 能够白板画出项目整体架构，解释每个组件选型理由 (Etcd vs Consul, gRPC vs HTTP)。
 
-[ ] Day 34: 模拟面试 (项目篇：微服务 + AI 落地)
+[ ] Day 34: 模拟面试 (现场 Debug) —— 复盘之前的 Chaos Test 和 Pprof 调优过程，准备好讲述 "如何排查线上 OOM 或 CPU 飙升" 的故事。
 
-[ ] Day 35: 简历最终打磨与投递准备
+[ ] Day 35: 最终复查与投递 —— 整理 Github 仓库，确保代码无敏感信息，Run 起来无报错，开始投递简历。
