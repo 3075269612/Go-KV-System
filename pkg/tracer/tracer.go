@@ -35,10 +35,13 @@ func InitTracer(serviceName string, collectorAddr string) (*sdktrace.TracerProvi
 	}
 
 	// 3. 创建 TracerProvider
+	// 采样率更新为 0.1
+	sampler := sdktrace.ParentBased(sdktrace.TraceIDRatioBased(0.1))
+
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(exporter),
 		sdktrace.WithResource(res),
-		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithSampler(sampler),
 	)
 
 	// 4. 设置全局 TracerProvider

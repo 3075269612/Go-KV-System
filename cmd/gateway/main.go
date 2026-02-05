@@ -10,6 +10,7 @@ import (
 	"context"
 	"errors"
 	"net/http"
+	_ "net/http/pprof"	// 引入 Pprof，自动注册路由
 	"os"
 	"os/signal"
 	"syscall"
@@ -83,6 +84,18 @@ func main() {
 
 	// 5. 初始化 Router (路由层)
 	r := router.NewRouter(kvHandler, healthHandler)
+
+	// Day 19 新增
+	// 启动 Pprof 监控服务 (独立端口 :6060)
+	go func() {
+		pprofAddr := "0.0.0.0:6060"
+		log.Info("📈 Pprof Debug Server is running", zap.String("addr", "http://localhost:6060/debug/pprof/"))
+
+		// http.ListenAndServe 使用默认的 ServeMux
+		if err := http.ListenAndServe(pprofAddr, nil); err != nil {
+			log.Error("❌ Pprof Server failed", zap.Error(err))
+		}
+	}()
 
 	// 6. 配置 HTTP Server
 	port := viper.GetString("server.port")
