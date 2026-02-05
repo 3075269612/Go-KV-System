@@ -45,7 +45,7 @@ func main() {
 		defer clientsMu.Unlock()
 		addr := v
 		if _, ok := clients[addr]; !ok {
-			if cli, err := client.NewClient(addr); err == nil {
+			if cli, err := client.NewDirectClient(addr); err == nil {
 				clients[addr] = cli
 				ring.Add(addr)
 			}

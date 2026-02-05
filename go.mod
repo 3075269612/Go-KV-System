@@ -5,6 +5,7 @@ go 1.24.0
 toolchain go1.24.12
 
 require (
+	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5
 	github.com/gin-gonic/gin v1.11.0
 	github.com/spf13/viper v1.21.0
 	go.etcd.io/etcd/client/v3 v3.6.7
@@ -14,13 +15,13 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc v1.39.0
 	go.opentelemetry.io/otel/sdk v1.39.0
 	go.uber.org/zap v1.27.1
+	golang.org/x/sync v0.19.0
 	golang.org/x/time v0.14.0
 	google.golang.org/grpc v1.78.0
 	google.golang.org/protobuf v1.36.11
 )
 
 require (
-	github.com/afex/hystrix-go v0.0.0-20180502004556-fa1af6a1f4f5 // indirect
 	github.com/bytedance/gopkg v0.1.3 // indirect
 	github.com/bytedance/sonic v1.15.0 // indirect
 	github.com/bytedance/sonic/loader v0.5.0 // indirect
@@ -54,6 +55,7 @@ require (
 	github.com/quic-go/qpack v0.6.0 // indirect
 	github.com/quic-go/quic-go v0.59.0 // indirect
 	github.com/sagikazarmark/locafero v0.12.0 // indirect
+	github.com/smartystreets/goconvey v1.8.1 // indirect
 	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.10.0 // indirect
 	github.com/spf13/pflag v1.0.10 // indirect

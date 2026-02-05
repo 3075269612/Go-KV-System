@@ -20,7 +20,7 @@ type Client struct {
 	mu      sync.RWMutex
 	conns   map[string]*grpc.ClientConn   // addr -> 原始连接
 	clients map[string]pb.KVServiceClient // addr -> 客户端存根
-	addrs   []string	// 节点地址列表（用于轮训索引）
+	addrs   []string                      // 节点地址列表（用于轮训索引）
 
 	seq uint64 // 轮询计数器
 }
@@ -29,10 +29,10 @@ type Client struct {
 func NewClient(d *discovery.Discovery, serviceName string) (*Client, error) {
 	c := &Client{
 		clients: make(map[string]pb.KVServiceClient),
-		conns: make(map[string]*grpc.ClientConn),
-		addrs: make([]string, 0),
+		conns:   make(map[string]*grpc.ClientConn),
+		addrs:   make([]string, 0),
 	}
-	
+
 	// 启动监听 (回调函数会自动处理现有节点和未来节点的连接建立)
 	// 假设 Etcd 中注册的 Key 是 /services/kv-service/uuid
 	// 我们监听的前缀就是 /services/kv-service/
@@ -40,6 +40,27 @@ func NewClient(d *discovery.Discovery, serviceName string) (*Client, error) {
 	err := d.WatchService(prefix, c.addNode, c.removeNode)
 	if err != nil {
 		return nil, err
+	}
+
+	return c, nil
+}
+
+// NewDirectClient 创建直连单个节点的客户端（不使用服务发现）
+// 适用于测试用例或手动路由场景
+func NewDirectClient(addr string) (*Client, error) {
+	c := &Client{
+		clients: make(map[string]pb.KVServiceClient),
+		conns:   make(map[string]*grpc.ClientConn),
+		addrs:   make([]string, 0),
+	}
+
+	// 直接添加节点
+	c.addNode("direct", addr)
+
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	if len(c.clients) == 0 {
+		return nil, errors.New("failed to connect to " + addr)
 	}
 
 	return c, nil
@@ -62,7 +83,7 @@ func (c *Client) addNode(key, value string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	addr := value	// Etcd value 存储的是 "ip:port"
+	addr := value // Etcd value 存储的是 "ip:port"
 
 	// 防止重复添加
 	if _, ok := c.clients[addr]; ok {
@@ -70,9 +91,9 @@ func (c *Client) addNode(key, value string) {
 	}
 
 	// 建立 gRPC 连接
-	conn, err := grpc.NewClient(addr, 
-	grpc.WithTransportCredentials(insecure.NewCredentials()), 
-	grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	conn, err := grpc.NewClient(addr,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
 	)
 	if err != nil {
 		log.Printf("❌ [Client] 连接节点失败 %s: %v", addr, err)
@@ -141,7 +162,7 @@ func (c *Client) Set(key, value string) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	_, err = client.Set(ctx, &pb.SetRequest{Key: key, Value: value})
@@ -155,7 +176,7 @@ func (c *Client) Get(key string) (string, error) {
 		return "", err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2 * time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	resp, err := client.Get(ctx, &pb.GetRequest{Key: key})
@@ -171,8 +192,8 @@ func (c *Client) Del(key string) error {
 	if err != nil {
 		return err
 	}
-	
-	ctx, cancel := context.WithTimeout(context.Background(), 2 * time.Second)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	_, err = client.Del(ctx, &pb.DelRequest{Key: key})

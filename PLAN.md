@@ -45,7 +45,7 @@
 
 [x] Day 17: [负载均衡] 结合 Day 9 的 Etcd 实现 RoundRobin 策略 (Discovery Watch + Client Pool) ✅
 
-[ ] Day 18: [防击穿] SingleFlight 模式实现 —— 高并发杀手锏
+[x] Day 18: [防击穿] SingleFlight 模式实现 —— 高并发杀手锏 ✅
 
 [ ] Day 19: [性能调优] Pprof 性能分析与内存优化实战
 

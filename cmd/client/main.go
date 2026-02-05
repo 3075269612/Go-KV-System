@@ -43,7 +43,7 @@ func main() {
 
 		// 1. 只有当连接不存在时才创建
 		if _, exists := clients[addr]; !exists {
-			cli, err := client.NewClient(addr)
+			cli, err := client.NewDirectClient(addr)
 			if err != nil {
 				log.Printf("❌ 无法连接新节点 [%s]: %v", addr, err)
 				return
@@ -54,7 +54,7 @@ func main() {
 			log.Printf("✅ [上线] 新节点加入: %s (当前总数: %d)", addr, len(clients))
 		}
 	}
-	
+
 	// 定义回调：当节点下线时
 	removeNode := func(key, value string) {
 		mu.Lock()
@@ -141,14 +141,14 @@ func main() {
 			}
 
 			val := strings.Join(parts[2:], " ")
-			
+
 			err := targetClient.Set(key, val)
 			if err != nil {
 				fmt.Printf("❌ SET 错误: %v\n", err)
 			} else {
 				fmt.Println("OK")
 			}
-		
+
 		case "GET":
 			val, err := targetClient.Get(key)
 			if err != nil {

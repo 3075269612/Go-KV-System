@@ -5,11 +5,13 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"golang.org/x/sync/singleflight"
 )
 
 // KVHandler 持有 gRPC 客户端的指针
 type KVHandler struct {
 	cli *client.Client
+	sf  singleflight.Group // 新增：无需初始化，零值即可用
 }
 
 func NewKVHandler(cli *client.Client) *KVHandler {
@@ -59,17 +61,22 @@ func (h *KVHandler) HandleGet(c *gin.Context) {
 		return
 	}
 
-	// 调用 gRPC
-	val, err := h.cli.Get(key)
+	// 使用 SingleFlight 包装 gRPC 调用
+	// 只有第一个到达的请求会执行 func 内部逻辑，其他请求会阻塞并共享结果
+	val, err, shared := h.sf.Do(key, func() (interface{}, error) {
+		// 真正发起网络调用
+		return h.cli.Get(key)
+	})
+
 	if err != nil {
-		// 简单处理，后续可优化
-		c.JSON(http.StatusNotFound, gin.H{"error": "查询失败或 Key 不存在: " + err.Error()})
+		c.JSON(http.StatusNotFound, gin.H{"error": "查询失败或 Key 不存在：" + err.Error()})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"key": key,
-		"value": val,
+		"key":    key,
+		"value":  val.(string),
+		"shared": shared,
 	})
 }
 
@@ -81,6 +88,9 @@ func (h *KVHandler) HandleDel(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少 key 参数"})
 		return
 	}
+
+	//
+	h.sf.Forget(key)
 
 	err := h.cli.Del(key)
 	if err != nil {
