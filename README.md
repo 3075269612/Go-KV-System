@@ -53,7 +53,34 @@ go run cmd/gateway/main.go
 go run cmd/client/main.go
 ```
 
-## 📚 学习计划
+## � Docker 快速部署 (推荐)
+
+本项目支持 Docker Compose 一键拉起完整环境 (Etcd + RabbitMQ + Jaeger + KV Nodes + Gateway)。
+
+### 1. 构建并启动集群
+```bash
+docker-compose up --build -d
+```
+
+### 2. 查看节点状态
+```bash
+docker-compose ps
+```
+
+### 3. 操作验证
+```bash
+# 写入数据 (HTTP -> Gateway -> KV Node)
+curl -X POST -d "key=hello&value=world" http://localhost:8080/api/v1/kv
+
+# 验证 CDC 异步日志
+docker logs -f flux-cdc-consumer
+```
+
+### 4. 访问管理后台
+- **Jaeger UI**: http://localhost:16686
+- **RabbitMQ**: http://localhost:15672 (User: fluxadmin / Pass: flux2026secure)
+
+## �📚 学习计划
 详细的开发日志和每日任务列表，请参阅 [PLAN.md](PLAN.md)。
 
 ## 📝 目录结构

@@ -53,7 +53,7 @@ func (db *MemDB) getShard(key string) *shard {
 	return db.shards[hash%ShardCount]
 }
 
-func NewMemDB(cfg *config.Config) *MemDB {
+func NewMemDB(cfg *config.Config, mqURL string) *MemDB {
 	db := &MemDB{
 		shards: make([]*shard, ShardCount),
 	}
@@ -65,11 +65,7 @@ func NewMemDB(cfg *config.Config) *MemDB {
 		}
 	}
 
-	// 【修改部分】初始化 RabbitMQ EventBus
-	mqURL := "amqp://guest:guest@localhost:5672/"
-	// (在生产环境，这个 URL 应该从 cfg 配置里读，今天先硬编码)
-
-	// 初始化并启动 EventBus
+	// 初始化 RabbitMQ EventBus（从参数传入，支持配置/环境变量）
 	// 缓冲区设为 10000，足够应对瞬间的并发洪峰
 	bus, err := event.NewEventBus(10000, mqURL)
 	if err != nil {

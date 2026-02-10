@@ -14,7 +14,7 @@ func TestServer_EndToEnd(t *testing.T) {
 	// 1. 初始化依赖（Core MemDB）
 	// 测试不需要 AOF，给个空配置即可
 	cfg := &config.Config{}
-	db := core.NewMemDB(cfg)
+	db := core.NewMemDB(cfg, "")
 
 	// 2. 创建 Server
 	addr := "localhost:9090"

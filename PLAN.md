@@ -59,7 +59,7 @@
 
 [x] Day 24: [可靠性] 优雅启停 (Graceful Shutdown) —— 完善 KV Server 端的退出逻辑，确保 AOF 缓冲区刷盘、RabbitMQ 连接安全关闭，防止数据丢失。 ✅
 
-[ ] Day 25: [容器化] Docker Compose 集群编排 —— 编写多阶段构建 Dockerfile，一键拉起 Etcd, RabbitMQ, Jaeger, KV-Nodes(x3), Gateway 完整环境。
+[x] Day 25: [容器化] Docker Compose 集群编排 —— 编写多阶段构建 Dockerfile，配置系统参数化（FLUX_前缀环境变量），一键拉起 Etcd, RabbitMQ, Jaeger, KV-Nodes(x3), Gateway 完整环境。容器健康检查，依赖等待，数据持久化卷隔离。✅
 
 [ ] Day 26: [极致压测] 性能对比验证 —— 使用 pprof 对比 ShardedMap 优化前后的锁等待时间 (Mutex Wait)；验证 CDC 开启对写性能的影响。
 

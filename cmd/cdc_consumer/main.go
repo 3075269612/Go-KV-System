@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Flux-KV/internal/config"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/spf13/viper"
 )
 
 type EventType int
@@ -26,25 +28,28 @@ type Event struct {
 	Value interface{} `json:"value"`
 }
 
-const (
-	ExchangeName = "flux_kv_events"
-	QueueName    = "flux_cdc_file_logger"
-	LogFileName  = "flux_cdc.log"
-	AmqpURL      = "amqp://guest:guest@localhost:5672/"
-	ConsumerTag  = "flux-cdc-consumer-1"
-)
-
 func main() {
-	// 1. 连接 RabbitMQ (建立连接 + 打开通道)
-	conn, err := amqp.Dial(AmqpURL)
+	// 1. 初始化配置系统
+	config.InitConfig()
+	config.PrintConfig()
+
+	// 2. 从配置读取 RabbitMQ 相关参数
+	amqpURL := viper.GetString("rabbitmq.url")
+	exchangeName := viper.GetString("cdc.exchange")
+	queueName := viper.GetString("cdc.queue")
+	logFileName := viper.GetString("cdc.log_path")
+	consumerTag := "flux-cdc-consumer-1"
+
+	// 3. 连接 RabbitMQ (建立连接 + 打开通道)
+	conn, err := amqp.Dial(amqpURL)
 	failOnError(err, "Failed to connect to RabbitMQ")
 
 	ch, err := conn.Channel()
 	failOnError(err, "Failed to open a channel")
 
-	// 2. 声明交换机
+	// 4. 声明交换机
 	err = ch.ExchangeDeclare(
-		ExchangeName,
+		exchangeName,
 		"fanout",
 		true,
 		false,
@@ -54,9 +59,9 @@ func main() {
 	)
 	failOnError(err, "Failed to declare exchange")
 
-	// 3. 声明队列
+	// 5. 声明队列
 	q, err := ch.QueueDeclare(
-		QueueName,
+		queueName,
 		true,
 		false,
 		false,
@@ -65,16 +70,16 @@ func main() {
 	)
 	failOnError(err, "Failed to declare queue")
 
-	// 4. 绑定队列到交换机
+	// 6. 绑定队列到交换机
 	err = ch.QueueBind(
-		q.Name, "", ExchangeName, false, nil,
+		q.Name, "", exchangeName, false, nil,
 	)
 	failOnError(err, "Failed to bind queue")
 
-	// 5. 注册消费者
+	// 7. 注册消费者
 	msgs, err := ch.Consume(
 		q.Name,
-		ConsumerTag,
+		consumerTag,
 		false, // 手动确认消息
 		false,
 		false,
@@ -83,13 +88,13 @@ func main() {
 	)
 	failOnError(err, "Failed to register consumer")
 
-	// 6. 打开日志文件
-	logFile, err := os.OpenFile(LogFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	// 8. 打开日志文件
+	logFile, err := os.OpenFile(logFileName, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	failOnError(err, "Failed to open log file")
 
 	log.Printf("[*] Waiting for CDC events. To exit press CTRL+C")
 
-	// 7. 处理消息循环
+	// 9. 处理消息循环
 	var wg sync.WaitGroup
 	wg.Add(1)
 
@@ -119,7 +124,7 @@ func main() {
 		log.Println("✅ 消息通道已关闭，消费者协程退出")
 	}()
 
-	// 8. 优雅退出
+	// 10. 优雅退出
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 	<-sigChan // 阻塞等待信号
@@ -129,7 +134,7 @@ func main() {
 	// Step A: 停止接收新消息
 	// 告诉 RabbitMQ：这个消费者下班了，别再发新消息过来
 	// 这会导致 msgs 通道被关闭，从而让上面的 for 循环结束
-	if err := ch.Cancel(ConsumerTag, false); err != nil {
+	if err := ch.Cancel(consumerTag, false); err != nil {
 		log.Printf("Error cancelling consumer: %s", err)
 	}
 

@@ -13,11 +13,11 @@ import (
 func CircuitBreaker(commandName string) gin.HandlerFunc {
 	// 1. 配置 Hystrix 命令
 	hystrix.ConfigureCommand(commandName, hystrix.CommandConfig{
-		Timeout:                1000, // 超时时间，超过直接熔断
-		MaxConcurrentRequests:  100,  // 最大并发请求数
-		RequestVolumeThreshold: 10,   // 触发熔断的最小请求量
-		SleepWindow:            5000, // 熔断冷却时间
-		ErrorPercentThreshold:  50,   // 错误率阈值
+		Timeout:                16000, // 增加到 16000ms 适配 gRPC Client 15s 超时
+		MaxConcurrentRequests:  100,   // 最大并发请求数
+		RequestVolumeThreshold: 10,    // 触发熔断的最小请求量
+		SleepWindow:            5000,  // 熔断冷却时间
+		ErrorPercentThreshold:  50,    // 错误率阈值
 	})
 
 	return func(c *gin.Context) {

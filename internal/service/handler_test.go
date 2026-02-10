@@ -1,9 +1,9 @@
 package service
 
 import (
+	pb "Flux-KV/api/proto"
 	"Flux-KV/internal/config"
 	"Flux-KV/internal/core"
-	pb "Flux-KV/api/proto"
 	"context"
 	"net"
 	"testing"
@@ -28,7 +28,7 @@ func TestKVServiceFlow(t *testing.T) {
 
 	// 1.2 创建 gRPC 服务器，注册 KV 服务
 	s := grpc.NewServer()
-	db := core.NewMemDB(&config.Config{})
+	db := core.NewMemDB(&config.Config{}, "")
 	pb.RegisterKVServiceServer(s, NewKVService(db))
 
 	// 1.3 goroutine 中启动服务（不阻塞测试主线程）
@@ -37,7 +37,7 @@ func TestKVServiceFlow(t *testing.T) {
 			t.Errorf("failed to serve: %v", err)
 		}
 	}()
-	defer s.Stop()	// 测试结束自动停止服务，释放资源
+	defer s.Stop() // 测试结束自动停止服务，释放资源
 
 	// 2. 启动客户端
 

@@ -1,6 +1,7 @@
 package main
 
 import (
+	"Flux-KV/internal/config"
 	"Flux-KV/internal/gateway/handler"
 	"Flux-KV/internal/gateway/router"
 	"Flux-KV/pkg/client"
@@ -9,8 +10,9 @@ import (
 	"Flux-KV/pkg/tracer"
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
-	_ "net/http/pprof"	// 引入 Pprof，自动注册路由
+	_ "net/http/pprof" // 引入 Pprof，自动注册路由
 	"os"
 	"os/signal"
 	"syscall"
@@ -22,11 +24,9 @@ import (
 )
 
 func main() {
-	// 1. 初始化配置
-	viper.SetDefault("server.mode", "debug")        // 默认开发模式
-	viper.SetDefault("server.port", "8080")         // 默认端口
-	viper.SetDefault("etcd.endpoints", []string{"localhost:2379"})
-	viper.SetDefault("rpc.service_name", "kv-service")
+	// 1. 初始化配置系统
+	config.InitConfig()
+	config.PrintConfig()
 
 	// 2. 初始化日志
 	logger.InitLogger()
@@ -34,7 +34,8 @@ func main() {
 	defer logger.Log.Sync()
 
 	// 初始化分布式链路追踪
-	tp, err := tracer.InitTracer("gateway-service", "localhost:4317")
+	jaegerEndpoint := viper.GetString("jaeger.endpoint")
+	tp, err := tracer.InitTracer("gateway-service", jaegerEndpoint)
 	if err != nil {
 		logger.Log.Error("❌ Failed to init tracer", zap.Error(err))
 	}
@@ -51,8 +52,7 @@ func main() {
 	// 3. 设置 Gin 的运行模式
 	gin.SetMode(viper.GetString("server.mode"))
 
-	// Day 17 新增：服务发现与负载均衡链接逻辑
-	// A. 连接 Etcd
+	// 4. 连接 Etcd 获取服务发现
 	etcdEndpoints := viper.GetStringSlice("etcd.endpoints")
 	log.Info("🔍 Connecting to Etcd...", zap.Strings("endpoints", etcdEndpoints))
 
@@ -60,13 +60,12 @@ func main() {
 	if err != nil {
 		log.Fatal("❌ Failed to connect to Etcd", zap.Error(err))
 	}
-	defer disco.Close()	// 退出时关闭 Etcd 连接
+	defer disco.Close() // 退出时关闭 Etcd 连接
 
-	// B. 初始化支持负载均衡的 gRPC Client
-	serviceName := viper.GetString("rpc.service_name")
+	// 5. 初始化支持负载均衡的 gRPC Client
+	serviceName := "kv-service"
 	log.Info("🔗 Initializing KV Client (Load Balanced)...", zap.String("service", serviceName))
 
-	// 注意：这里传入 discovery 实例和服务名，不再是具体的 IP
 	kvClient, err := client.NewClient(disco, serviceName)
 	if err != nil {
 		log.Fatal("❌ Failed to init KV client", zap.Error(err))
@@ -78,41 +77,50 @@ func main() {
 		}
 	}()
 
-	// 4. 初始化 Handlers (控制层)
+	// 6. 初始化 Handlers (控制层)
 	kvHandler := handler.NewKVHandler(kvClient)
 	healthHandler := handler.NewHealthHandler()
 
-	// 5. 初始化 Router (路由层)
+	// 7. 初始化 Router (路由层)
 	r := router.NewRouter(kvHandler, healthHandler)
 
-	// Day 19 新增
-	// 启动 Pprof 监控服务 (独立端口 :6060)
-	go func() {
-		pprofAddr := "0.0.0.0:6060"
-		log.Info("📈 Pprof Debug Server is running", zap.String("addr", "http://localhost:6060/debug/pprof/"))
+	// 8. 条件启动 Pprof 监控服务（通过环境变量/配置控制）
+	if viper.GetBool("pprof.enabled") {
+		pprofPort := viper.GetInt("pprof.port")
+		pprofAddr := fmt.Sprintf("0.0.0.0:%d", pprofPort)
+		go func() {
+			log.Info("📈 Pprof Debug Server is running",
+				zap.String("addr", fmt.Sprintf("http://localhost:%d/debug/pprof/", pprofPort)))
 
-		// http.ListenAndServe 使用默认的 ServeMux
-		if err := http.ListenAndServe(pprofAddr, nil); err != nil {
-			log.Error("❌ Pprof Server failed", zap.Error(err))
-		}
-	}()
+			// http.ListenAndServe 使用默认的 ServeMux
+			if err := http.ListenAndServe(pprofAddr, nil); err != nil {
+				log.Error("❌ Pprof Server failed", zap.Error(err))
+			}
+		}()
+	} else {
+		log.Info("⚙️  Pprof Debug Server is disabled (set FLUX_PPROF_ENABLED=true to enable)")
+	}
 
-	// 6. 配置 HTTP Server
-	port := viper.GetString("server.port")
+	// 9. 配置 HTTP Server
+	gatewayPort := viper.GetInt("gateway.port")
+	if gatewayPort == 0 {
+		gatewayPort = viper.GetInt("server.port") // 回退到 server.port
+	}
+	portStr := fmt.Sprintf("%d", gatewayPort)
 	srv := &http.Server{
-		Addr:    ":" + port,
+		Addr:    ":" + portStr,
 		Handler: r,
 	}
 
-	// 7. 启动服务
+	// 10. 启动服务
 	go func() {
 		if err := srv.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			log.Fatal("❌ Listen error", zap.Error(err))
 		}
 	}()
-	log.Info("✅ Gateway running", zap.String("port", port))
+	log.Info("✅ Gateway running", zap.String("port", portStr))
 
-	// 8. 优雅退出
+	// 11. 优雅退出
 	quit := make(chan os.Signal, 1)
 	// 监听中断信号 (Ctrl+C, Docker stop)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)

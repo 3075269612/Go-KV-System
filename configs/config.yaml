@@ -1,11 +1,30 @@
 server:
-  port: "8080"      # 我们服务监听的端口
-  mode: "debug"     # 开发模式（报错会显示详细信息），上线后改为 release
+  port: 50052        # gRPC 默认监听端口
+  mode: "debug"      # debug 或 release
 
 log:
-  level: "info"     # 日志级别：debug < info < warn < error
-  encoding: "console" # 输出格式：console (也就是给人看的彩色字) 或 json (给机器看的)
+  level: "info"      # debug < info < warn < error
+  encoding: "console"
 
 aof:
-  filename: "go-kv.aof"   # 持久化文件名
+  filename: "/app/data/go-kv.aof"  # 容器中的路径
   append_fsync: "everysec"
+
+etcd:
+  endpoints:
+    - "localhost:2379"  # 本地开发用 localhost，容器化后改为 etcd:2379
+
+rabbitmq:
+  url: "amqp://guest:guest@localhost:5672/"  # 本地开发用，容器化后改为 rabbitmq
+
+jaeger:
+  endpoint: "localhost:4317"  # OTLP endpoint，容器化后改为 jaeger:4317
+
+pprof:
+  enabled: false    # 默认禁用，开发环境可改为 true
+  port: 6060
+
+cdc:
+  exchange: "flux_kv_events"
+  queue: "flux_cdc_file_logger"
+  log_path: "/app/logs/flux_cdc.log"

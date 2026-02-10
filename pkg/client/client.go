@@ -162,7 +162,7 @@ func (c *Client) Set(key, value string) error {
 		return err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second) // 增加到 15秒
 	defer cancel()
 
 	_, err = client.Set(ctx, &pb.SetRequest{Key: key, Value: value})
@@ -176,7 +176,7 @@ func (c *Client) Get(key string) (string, error) {
 		return "", err
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second) // 增加到 15秒
 	defer cancel()
 
 	resp, err := client.Get(ctx, &pb.GetRequest{Key: key})
