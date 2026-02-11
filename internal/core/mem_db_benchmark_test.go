@@ -18,7 +18,7 @@ func BenchmarkMemDB_Set_Parallel(b *testing.B) {
 			Filename: "",
 		},
 	}
-	db := NewMemDB(cfg, "")
+	db, _ := NewMemDB(cfg)
 
 	b.ResetTimer()
 	b.RunParallel(func(pb *testing.PB) {
@@ -42,7 +42,7 @@ func BenchmarkMemDB_Get_Parallel(b *testing.B) {
 			Filename: "",
 		},
 	}
-	db := NewMemDB(cfg, "")
+	db, _ := NewMemDB(cfg)
 
 	// 预热 10万 条数据
 	const dataCount = 100000
@@ -71,7 +71,7 @@ func BenchmarkMemDB_Mixed_Parallel(b *testing.B) {
 			Filename: "",
 		},
 	}
-	db := NewMemDB(cfg, "")
+	db, _ := NewMemDB(cfg)
 
 	const dataCount = 100000
 	for i := 0; i < dataCount; i++ {

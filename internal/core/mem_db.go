@@ -32,13 +32,15 @@ type MemDB struct {
 	eventBus   *event.EventBus // 持有 EventBus 指针
 }
 
+// FNV-1a hash constants
+const (
+	offset32 = 2166136261
+	prime32  = 16777619
+)
+
 // 实现 FNV-1a 哈希算法
 // 公式：hash = (hash ^ byte) * prime
 func fnv32(key string) uint32 {
-	const (
-		offset32 = 2166136261
-		prime32  = 16777619
-	)
 	hash := uint32(offset32)
 	for i := 0; i < len(key); i++ {
 		hash ^= uint32(key[i])
@@ -53,7 +55,7 @@ func (db *MemDB) getShard(key string) *shard {
 	return db.shards[hash%ShardCount]
 }
 
-func NewMemDB(cfg *config.Config, mqURL string) *MemDB {
+func NewMemDB(cfg *config.Config) (*MemDB, error) {
 	db := &MemDB{
 		shards: make([]*shard, ShardCount),
 	}
@@ -65,45 +67,47 @@ func NewMemDB(cfg *config.Config, mqURL string) *MemDB {
 		}
 	}
 
-	// 初始化 RabbitMQ EventBus（从参数传入，支持配置/环境变量）
+	// 初始化 RabbitMQ EventBus
 	// 缓冲区设为 10000，足够应对瞬间的并发洪峰
-	bus, err := event.NewEventBus(10000, mqURL)
-	if err != nil {
-		// 如果 MQ 连不上，你可以选择 panic，或者降级运行
-		log.Printf("⚠️ [Warning] Failed to connect RabbitMQ: %v, EventBus disabled.", err)
-		// 如果连不上，db.eventBus 就是 nil，Publish 的时候要判空
-	} else {
-		db.eventBus = bus
-		db.eventBus.StartConsumer()
-		log.Println("🔌 RabbitMQ connected success!")
+	if cfg.RabbitMQ.URL != "" {
+		bus, err := event.NewEventBus(10000, cfg.RabbitMQ.URL)
+		if err != nil {
+			// 如果 MQ 连不上，记录错误但允许系统继续运行（降级）
+			log.Printf("⚠️ [Warning] Failed to connect RabbitMQ: %v, EventBus disabled.", err)
+		} else {
+			db.eventBus = bus
+			db.eventBus.StartConsumer()
+			log.Println("🔌 RabbitMQ connected success!")
+		}
 	}
 
 	// 初始化 AOF 模块
 	if cfg.AOF.Filename != "" {
 		handler, err := aof.NewAofHandler(cfg.AOF.Filename)
 		if err != nil {
-			log.Fatal(err)
+			return nil, fmt.Errorf("failed to init AOF handler: %w", err)
 		}
 		db.aofHandler = handler
 
 		// 启动时立刻恢复数据
-		db.loadFromAof()
+		if err := db.loadFromAof(); err != nil {
+			log.Printf("⚠️ [Warning] Failed to load from AOF: %v", err)
+		}
 	}
 
-	return db
+	return db, nil
 }
 
 // loadFromAof 从 AOF 文件恢复数据
-func (db *MemDB) loadFromAof() {
+func (db *MemDB) loadFromAof() error {
 	if db.aofHandler == nil {
-		return
+		return nil
 	}
 
 	// 读取所有命令
 	cmds, err := db.aofHandler.ReadAll()
 	if err != nil {
-		log.Printf("Read AOF failure: %v", err)
-		return
+		return fmt.Errorf("read AOF file error: %w", err)
 	}
 
 	// 重放命令，针对每个 Key 找分片锁
@@ -121,6 +125,7 @@ func (db *MemDB) loadFromAof() {
 		}
 		s.mu.Unlock()
 	}
+	return nil
 }
 
 // Set 写入数据，支持过期时间(ttl: time to live)
@@ -146,7 +151,9 @@ func (db *MemDB) Set(key string, val any, ttl time.Duration) {
 			Key:   key,
 			Value: val,
 		}
-		_ = db.aofHandler.Write(cmd)
+		if err := db.aofHandler.Write(cmd); err != nil {
+			log.Printf("❌ AOF Write Error: %v", err)
+		}
 	}
 
 	// 4. 投递事件到 EventBus
@@ -213,7 +220,9 @@ func (db *MemDB) Del(key string) {
 			Type: "del",
 			Key:  key,
 		}
-		_ = db.aofHandler.Write(cmd)
+		if err := db.aofHandler.Write(cmd); err != nil {
+			log.Printf("❌ AOF Write Error: %v", err)
+		}
 	}
 
 	// 投递删除事件

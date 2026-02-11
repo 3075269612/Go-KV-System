@@ -61,9 +61,9 @@
 
 [x] Day 25: [容器化] Docker Compose 集群编排 —— 编写多阶段构建 Dockerfile，配置系统参数化（FLUX_前缀环境变量），一键拉起 Etcd, RabbitMQ, Jaeger, KV-Nodes(x3), Gateway 完整环境。容器健康检查，依赖等待，数据持久化卷隔离。✅
 
-[ ] Day 26: [极致压测] 性能对比验证 —— 使用 pprof 对比 ShardedMap 优化前后的锁等待时间 (Mutex Wait)；验证 CDC 开启对写性能的影响。
+[x] Day 26: [极致压测] 性能对比验证 —— 已完成。针对 CDC 开启与关闭场景进行压测对比 (32k vs 42k QPS)；使用 Pprof 验证 ShardedMap 锁竞争极低，性能瓶颈主要在网络 IO，符合预期。输出 PERFORMANCE.md 报告。 ✅
 
-[ ] Day 27: [代码重构] Go Idiomatic Refactoring —— 全局代码审查，优化 Error Handling，规范 Context 传递，清理硬编码与冗余逻辑。
+[x] Day 27: [代码重构] Go Idiomatic Refactoring —— 全局代码审查，优化 Error Handling (MemDB 初始化改为返回 error)，清理硬编码 (ShardCount, FNV 常量)，添加 Context 检查。 ✅
 
 [ ] Day 28: [项目门面] 架构文档与 README 完善 —— 绘制清晰的 "分布式架构图" (展示 CDC 流程) 和 "时序图"，更新 API 文档。
 

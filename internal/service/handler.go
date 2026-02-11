@@ -26,6 +26,11 @@ func NewKVService(db *core.MemDB) *KVService {
 
 // 1. 实现 Set
 func (s *KVService) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetResponse, error) {
+	// Good Practice: Check context cancellation
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	// 核心逻辑：拿到请求里的 Key, Value，塞给数据库
 	s.db.Set(req.Key, req.Value, 0)
 	return &pb.SetResponse{
@@ -35,6 +40,10 @@ func (s *KVService) Set(ctx context.Context, req *pb.SetRequest) (*pb.SetRespons
 
 // 2. Get 接口
 func (s *KVService) Get(ctx context.Context, req *pb.GetRequest) (*pb.GetResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
+
 	// 核心逻辑：去数据库查
 	val, found := s.db.Get(req.Key)
 	if !found {

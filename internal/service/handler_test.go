@@ -18,7 +18,7 @@ func TestKVServiceFlow(t *testing.T) {
 	// 1. 启动服务端
 
 	// 1.1 准备基础设施：使用 :0 让系统自动分配空闲端口
-	lis, err := net.Listen("tcp", ":0")
+	lis, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatalf("failed to listen: %v ", err)
 	}
@@ -28,22 +28,32 @@ func TestKVServiceFlow(t *testing.T) {
 
 	// 1.2 创建 gRPC 服务器，注册 KV 服务
 	s := grpc.NewServer()
-	db := core.NewMemDB(&config.Config{}, "")
+	db, err := core.NewMemDB(&config.Config{})
+	if err != nil {
+		t.Fatalf("failed to init db: %v", err)
+	}
 	pb.RegisterKVServiceServer(s, NewKVService(db))
 
 	// 1.3 goroutine 中启动服务（不阻塞测试主线程）
 	go func() {
 		if err := s.Serve(lis); err != nil {
-			t.Errorf("failed to serve: %v", err)
+			// Serve always returns non-nil error.
+			t.Logf("Server finished with: %v", err)
 		}
 	}()
 	defer s.Stop() // 测试结束自动停止服务，释放资源
+
+	// 等待 Server 启动
+	time.Sleep(100 * time.Millisecond)
 
 	// 2. 启动客户端
 
 	// 2.1 连接到刚才启动的服务端
 	addr := lis.Addr().String()
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// Use DialContext with Block to ensure connection is ready
+	ctxDial, cancelDial := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancelDial()
+	conn, err := grpc.DialContext(ctxDial, addr, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithBlock())
 	if err != nil {
 		t.Fatalf("did not connect: %v", err)
 	}
