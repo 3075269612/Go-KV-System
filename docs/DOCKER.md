@@ -24,7 +24,7 @@
 
 ```bash
 # 进入项目目录
-cd /home/wang/workspace/Flux-KV
+cd Flux-KV
 
 # 启动整个集群
 ./scripts/docker_start.sh
@@ -480,7 +480,7 @@ docker-compose up -d kv-server-4
 
 ### 添加 Prometheus 监控（未来计划）
 
-Day 27 会添加 Prometheus + Grafana 监控栈。
+未来会添加 Prometheus + Grafana 监控栈。
 
 ---
 
@@ -547,11 +547,9 @@ A: Docker Compose 本身仅支持单机。需要改用 Swarm 或 Kubernetes。
 
 ## 🚀 相关文档
 
-- [Day 24 优雅启停设计](../PLAN.md#day-24)
 - [go.mod 依赖说明](../go.mod)
 - [架构设计文档](../README.md)
 
 ---
 
-**最后更新**：2026-02-09  
-**Day**: 25 - 容器化与集群编排
+**最后更新**：2026-02-09

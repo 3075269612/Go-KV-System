@@ -1,4 +1,4 @@
-# Flux-KV Performance Benchmark Report (Day 26)
+# Flux-KV Performance Benchmark Report
 
 ## 1. 测试环境 (Test Environment)
 - **OS**: Linux
@@ -8,7 +8,7 @@
 - **Server**: Flux-KV Solo Node (ShardedMap Enabled)
 - **Metric**: Write-Heavy Scenario (100% Set operations)
 
-## 2. 也是测试目标 (Test Objectives)
+## 2. 测试目标 (Test Objectives)
 1. **CDC 性能影响分析 (CDC Impact Analysis)**: 验证开启 Change Data Capture (异步写入 RabbitMQ) 对主流程写入性能的影响。
 2. **锁竞争分析 (Lock Contention)**: 通过 Pprof 验证 ShardedMap 在高并发下的表现。
 

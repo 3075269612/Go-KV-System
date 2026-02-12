@@ -16,9 +16,9 @@ func NewRouter(kvHandler *handler.KVHandler, healthHandler *handler.HealthHandle
 	// 1. 注册中间件
 	r.Use(gin.Recovery())
 	r.Use(otelgin.Middleware("gateway-service"))
-	// Day 14 新增：异步访问日志中间件
+	// 异步访问日志中间件
 	r.Use(middleware.AccessLog())
-	// Day 15 新增：全局限流中间件
+	// 全局限流中间件
 	r.Use(middleware.GlobalRateLimiter(1000, 2000))
 
 	// 2. 系统路由
@@ -27,7 +27,7 @@ func NewRouter(kvHandler *handler.KVHandler, healthHandler *handler.HealthHandle
 	// 2. 业务路由
 	v1 := r.Group("api/v1")
 
-	// Day 16 新增：熔断器中间件
+	// 熔断器中间件
 	v1.Use(middleware.CircuitBreaker("kv-service"))
 	{
 		v1.POST("/kv", kvHandler.HandleSet)

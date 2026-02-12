@@ -25,3 +25,6 @@ coverage.out
 
 # 依赖缓存 (如果有 vendoring)
 vendor/
+
+# 个人隐私/学习进度
+PLAN.md

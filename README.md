@@ -2,17 +2,17 @@
 
 这是一个高性能的分布式 KV 存储系统与微服务网关项目，集成了 Go 语言核心特性与云原生技术栈。
 
-本项目是 [35天 Golang 后端架构师计划](PLAN.md) 的实战成果，旨在构建一个高并发、强一致性、工业级的分布式 KV 存储与网关系统。
+本项目旨在构建一个高并发、强一致性、工业级的分布式 KV 存储与网关系统。
 
 ## 🚀 功能特性
 
 ### 分布式 KV 存储
 - **高性能存储**: 
   - [x] 基于 sync.RWMutex 的基础存储
-  - [ ] **分片锁 (Sharded Map) 优化 (Phase 3)**: 降低高并发写冲突
-- **事件驱动架构 (Phase 3)**:
-  - [ ] **CDC (Change Data Capture)**: 实时数据变更流
-  - [ ] **RabbitMQ 集成**: 异步解耦与削峰填谷
+  - [x] **分片锁 (Sharded Map) 优化**: 降低高并发写冲突
+- **事件驱动架构**:
+  - [x] **CDC (Change Data Capture)**: 实时数据变更流
+  - [x] **RabbitMQ 集成**: 异步解耦与削峰填谷
 - **持久化**: 支持 AOF (Append Only File) 持久化与启动恢复。
 - **过期机制**: 实现 Lazy + Active 混合过期清理策略。
 - **通信协议**: 自定义 TCP 协议（解决粘包问题）与 gRPC 接口支持。
@@ -26,9 +26,9 @@
   - 熔断降级 (Hystrix)
   - 负载均衡 (RoundRobin)
   - 防缓存击穿 (SingleFlight)
-- **工程化 (Phase 3)**:
-  - [ ] 优雅启停 (Graceful Shutdown)
-  - [ ] Docker Compose 全栈容器化编排
+- **工程化**:
+  - [x] 优雅启停 (Graceful Shutdown)
+  - [x] Docker Compose 全栈容器化编排
 - **可观测性**: 集成 OpenTelemetry/Jaeger 链路追踪与 Prometheus 指标监控。
 
 ## 🛠️ 快速开始
@@ -53,9 +53,10 @@ go run cmd/gateway/main.go
 go run cmd/client/main.go
 ```
 
-## � Docker 快速部署 (推荐)
+## 🐳 Docker 快速部署 (推荐)
 
 本项目支持 Docker Compose 一键拉起完整环境 (Etcd + RabbitMQ + Jaeger + KV Nodes + Gateway)。
+详细的操作指南、集群扩容和运维命令请参考 [Docker 部署手册](docs/DOCKER.md)。
 
 ### 1. 构建并启动集群
 ```bash
@@ -80,8 +81,11 @@ docker logs -f flux-cdc-consumer
 - **Jaeger UI**: http://localhost:16686
 - **RabbitMQ**: http://localhost:15672 (User: fluxadmin / Pass: flux2026secure)
 
-## �📚 学习计划
-详细的开发日志和每日任务列表，请参阅 [PLAN.md](PLAN.md)。
+## 📊 性能表现
+
+我们针对系统的核心组件进行了严格的基准测试 (Benchmark)，涵盖了写密集型场景、CDC 异步处理影响以及锁竞争分析。
+
+详细的压测数据和分析报告请参阅 [性能测试报告](PERFORMANCE.md)。
 
 ## 📝 目录结构
 ```
